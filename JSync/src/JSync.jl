@@ -9,7 +9,7 @@ using MacroTools: @forward
 include("types.jl")
 include("util.jl")
 
-const TIMEOUT_S = 5
+const TIMEOUT_S = 10
 
 # Main entry point
 function watch_tree(args...; max_delay= 0, max_events = typemax(Int), kwargs...)

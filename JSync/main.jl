@@ -53,10 +53,10 @@ function paths(path)
     try
     for (r, ds, fs) in walkdir(path)
         for d in ds
-            push!(x, joinpath(r, d))
+            push!(x, JSync.sanitize_path(joinpath(r, d)))
         end
         for f in fs
-            push!(x, joinpath(r, f))
+            push!(x, JSync.sanitize_path(joinpath(r, f)))
         end
     end
     catch
@@ -68,21 +68,33 @@ end
 function reader(tw)
     known = Set()
     t = time()
-    while !isopen(tw)
+    while !(JSync.isactive(tw) & isopen(tw))
         sleep(0.001)
     end
+
+    n = 0
+    # @async while true
+    #     if time() - t > 1
+    #     t = time()
+    #     end
+    # end
     while isopen(tw)
-        x = take!(tw)
-        # if x isa JSync.TreeEvent
-        #     push!(known, x.path)
-        # else
-        #     for ev in x
-        #         push!(known, ev.path)
-        #     end
-        # end
-        # println("---------- ($(length(known))/$(length(tw.tree))/$(length(paths("/tmp/test"))) ----------")
-        println(x.path)
-        t = time()
+        try
+            x = take!(tw)
+            if x isa JSync.TreeEvent
+                # println(x.path)
+                push!(known, x.path)
+                n = 1
+            else
+                n = length(x)
+                for ev in x
+                    push!(known, ev.path)
+                end
+            end
+        catch e
+            close(tw)
+            e isa InvalidStateException || rethrow()
+        end
     end
 end
 
@@ -104,12 +116,12 @@ function main()
     rm("/tmp/test", recursive=true, force=true)
     mkdir("/tmp/test")
 
-    # tw = JSync.watch_tree("/tmp/test", max_delay=0.1)
-    # tw = JSync.watch_tree("/tmp/test", max_events=50, max_delay = Inf)
+    # tw = JSync.watch_tree("/tmp/test", max_delay=1)
+    tw = JSync.watch_tree("/tmp/test", max_events=50, max_delay = Inf)
     # Base.Experimental.@sync begin
-    tw = JSync.watch_tree("/tmp/test")
+    # tw = JSync.watch_tree("/tmp/test")
     # @info typeof(tw)
-    @async reader(tw)
+    reader(tw)
     #
     # ch = Channel{String}(Inf)
     # @async writer(ch)
