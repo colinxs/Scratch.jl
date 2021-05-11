@@ -1,0 +1,10 @@
+name = "JSync"
+uuid = "2692993c-369c-407b-a8b6-57c7853290d4"
+authors = ["Colin Summers <me@colinxsummers.com>"]
+version = "0.1.0"
+
+[deps]
+CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
+FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"

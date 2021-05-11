@@ -1,0 +1,17 @@
+name = "FSWatch"
+uuid = "4fdc0899-2e64-4199-8be2-60ca0d66812b"
+authors = ["Colin Summers <me@colinxsummers.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
