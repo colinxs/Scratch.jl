@@ -6,7 +6,7 @@ const ValueType = Any
 function fswatch(path::String, args::Union{KeyType,Pair{KeyType,ValueType}}...)
     parsed = String[]
     for arg in args
-        if arg isa KeyType 
+        if arg isa KeyType
             push!(parsed, string(arg))
         else
             k, v = arg

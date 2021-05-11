@@ -10,16 +10,18 @@ end
 
 function recursive_children(parent::String)
     parent = sanitize_path(parent)
-    (sanitize_path(joinpath(parent, r, d)) for (r, ds, fs) in walkdir(parent) for d in ds)
+    return (
+        sanitize_path(joinpath(parent, r, d)) for (r, ds, fs) in walkdir(parent) for d in ds
+    )
 end
 
 function children(parent::String)
     parent = sanitize_path(parent)
-    (sanitize_path(p) for p in readdir(parent, join=true, sort=false) if isdir(p))
+    return (sanitize_path(p) for p in readdir(parent; join=true, sort=false) if isdir(p))
 end
 
 function issubpath(path::String, parent::String)
-    startswith(sanitize_path(path), sanitize_path(parent))
+    return startswith(sanitize_path(path), sanitize_path(parent))
 end
 
 function watch_folder(path::String, timeout::Int=-1)
@@ -28,5 +30,3 @@ function watch_folder(path::String, timeout::Int=-1)
     kind = isdir(path) ? :dir : :file
     return TreeEvent(kind, path, ev.changed, ev.renamed, ev.timedout)
 end
-
-

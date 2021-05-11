@@ -71,7 +71,7 @@ const __off64_t = Clong
 const __pid_t = Cint
 
 struct __fsid_t
-    __val::NTuple{2, Cint}
+    __val::NTuple{2,Cint}
 end
 
 const __clock_t = Clong
@@ -203,7 +203,7 @@ const __s64 = Clonglong
 const __u64 = Culonglong
 
 struct __kernel_fd_set
-    fds_bits::NTuple{16, Culong}
+    fds_bits::NTuple{16,Culong}
 end
 
 # typedef void ( * __kernel_sighandler_t ) ( int )
@@ -246,7 +246,7 @@ const __kernel_ssize_t = __kernel_long_t
 const __kernel_ptrdiff_t = __kernel_long_t
 
 struct __kernel_fsid_t
-    val::NTuple{2, Cint}
+    val::NTuple{2,Cint}
 end
 
 const __kernel_off_t = __kernel_long_t
@@ -290,7 +290,7 @@ const __wsum = __u32
 const __poll_t = Cuint
 
 struct fanotify_event_metadata
-    data::NTuple{24, UInt8}
+    data::NTuple{24,UInt8}
 end
 
 function Base.getproperty(x::Ptr{fanotify_event_metadata}, f::Symbol)
@@ -312,7 +312,7 @@ function Base.getproperty(x::fanotify_event_metadata, f::Symbol)
 end
 
 function Base.setproperty!(x::Ptr{fanotify_event_metadata}, f::Symbol, v)
-    unsafe_store!(getproperty(x, f), v)
+    return unsafe_store!(getproperty(x, f), v)
 end
 
 struct fanotify_event_info_header
@@ -324,7 +324,7 @@ end
 struct fanotify_event_info_fid
     hdr::fanotify_event_info_header
     fsid::__kernel_fsid_t
-    handle::NTuple{0, Cuchar}
+    handle::NTuple{0,Cuchar}
 end
 
 struct fanotify_response
@@ -333,11 +333,22 @@ struct fanotify_response
 end
 
 function fanotify_init(__flags, __event_f_flags)
-    ccall((:fanotify_init, "libc.so.6"), Cint, (Cuint, Cuint), __flags, __event_f_flags)
+    return ccall(
+        (:fanotify_init, "libc.so.6"), Cint, (Cuint, Cuint), __flags, __event_f_flags
+    )
 end
 
 function fanotify_mark(__fanotify_fd, __flags, __mask, __dfd, __pathname)
-    ccall((:fanotify_mark, "libc.so.6"), Cint, (Cint, Cuint, uint64_t, Cint, Ptr{Cchar}), __fanotify_fd, __flags, __mask, __dfd, __pathname)
+    return ccall(
+        (:fanotify_mark, "libc.so.6"),
+        Cint,
+        (Cint, Cuint, uint64_t, Cint, Ptr{Cchar}),
+        __fanotify_fd,
+        __flags,
+        __mask,
+        __dfd,
+        __pathname,
+    )
 end
 
 struct flock
@@ -374,23 +385,33 @@ struct stat
     st_atim::timespec
     st_mtim::timespec
     st_ctim::timespec
-    __glibc_reserved::NTuple{3, __syscall_slong_t}
+    __glibc_reserved::NTuple{3,__syscall_slong_t}
 end
 
 function creat(__file, __mode)
-    ccall((:creat, "libc.so.6"), Cint, (Ptr{Cchar}, mode_t), __file, __mode)
+    return ccall((:creat, "libc.so.6"), Cint, (Ptr{Cchar}, mode_t), __file, __mode)
 end
 
 function lockf(__fd, __cmd, __len)
-    ccall((:lockf, "libc.so.6"), Cint, (Cint, Cint, off_t), __fd, __cmd, __len)
+    return ccall((:lockf, "libc.so.6"), Cint, (Cint, Cint, off_t), __fd, __cmd, __len)
 end
 
 function posix_fadvise(__fd, __offset, __len, __advise)
-    ccall((:posix_fadvise, "libc.so.6"), Cint, (Cint, off_t, off_t, Cint), __fd, __offset, __len, __advise)
+    return ccall(
+        (:posix_fadvise, "libc.so.6"),
+        Cint,
+        (Cint, off_t, off_t, Cint),
+        __fd,
+        __offset,
+        __len,
+        __advise,
+    )
 end
 
 function posix_fallocate(__fd, __offset, __len)
-    ccall((:posix_fallocate, "libc.so.6"), Cint, (Cint, off_t, off_t), __fd, __offset, __len)
+    return ccall(
+        (:posix_fallocate, "libc.so.6"), Cint, (Cint, off_t, off_t), __fd, __offset, __len
+    )
 end
 
 const _DEFAULT_SOURCE = 1
@@ -711,7 +732,9 @@ const FAN_REPORT_NAME = 0x00000800
 
 const FAN_REPORT_DFID_NAME = FAN_REPORT_DIR_FID | FAN_REPORT_NAME
 
-const FAN_ALL_INIT_FLAGS = (((FAN_CLOEXEC | FAN_NONBLOCK) | FAN_ALL_CLASS_BITS) | FAN_UNLIMITED_QUEUE) | FAN_UNLIMITED_MARKS
+const FAN_ALL_INIT_FLAGS =
+    (((FAN_CLOEXEC | FAN_NONBLOCK) | FAN_ALL_CLASS_BITS) | FAN_UNLIMITED_QUEUE) |
+    FAN_UNLIMITED_MARKS
 
 const FAN_MARK_ADD = 0x00000001
 
@@ -733,7 +756,17 @@ const FAN_MARK_MOUNT = 0x00000010
 
 const FAN_MARK_FILESYSTEM = 0x00000100
 
-const FAN_ALL_MARK_FLAGS = ((((((FAN_MARK_ADD | FAN_MARK_REMOVE) | FAN_MARK_DONT_FOLLOW) | FAN_MARK_ONLYDIR) | FAN_MARK_MOUNT) | FAN_MARK_IGNORED_MASK) | FAN_MARK_IGNORED_SURV_MODIFY) | FAN_MARK_FLUSH
+const FAN_ALL_MARK_FLAGS =
+    (
+        (
+            (
+                (
+                    ((FAN_MARK_ADD | FAN_MARK_REMOVE) | FAN_MARK_DONT_FOLLOW) |
+                    FAN_MARK_ONLYDIR
+                ) | FAN_MARK_MOUNT
+            ) | FAN_MARK_IGNORED_MASK
+        ) | FAN_MARK_IGNORED_SURV_MODIFY
+    ) | FAN_MARK_FLUSH
 
 const FAN_ALL_EVENTS = ((FAN_ACCESS | FAN_MODIFY) | FAN_CLOSE) | FAN_OPEN
 

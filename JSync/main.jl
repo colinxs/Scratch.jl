@@ -4,7 +4,7 @@ using FileWatching
 
 function randpath(parent, n=10; delay=0.001)
     cur = parent
-    for i=1:n
+    for i in 1:n
         dir = rand(Bool)
         path = joinpath(cur, randstring(3))
         if dir
@@ -17,7 +17,7 @@ function randpath(parent, n=10; delay=0.001)
 end
 
 function randpathflat(parent, n=10; delay=0.001)
-    for i=1:n
+    for i in 1:n
         path = joinpath(parent, randstring(5))
         while ispath(path)
             path = joinpath(parent, randstring(5))
@@ -25,7 +25,6 @@ function randpathflat(parent, n=10; delay=0.001)
         mkdir(path)
     end
 end
-
 
 function randdelete(parent, n=10; delay=0.001)
     del = []
@@ -44,26 +43,25 @@ function randdelete(parent, n=10; delay=0.001)
         end
     end
     for x in del
-        rm(x, recursive=true, force=true)
+        rm(x; recursive=true, force=true)
     end
 end
 
 function paths(path)
-    x=String[]
+    x = String[]
     try
-    for (r, ds, fs) in walkdir(path)
-        for d in ds
-            push!(x, JSync.sanitize_path(joinpath(r, d)))
+        for (r, ds, fs) in walkdir(path)
+            for d in ds
+                push!(x, JSync.sanitize_path(joinpath(r, d)))
+            end
+            for f in fs
+                push!(x, JSync.sanitize_path(joinpath(r, f)))
+            end
         end
-        for f in fs
-            push!(x, JSync.sanitize_path(joinpath(r, f)))
-        end
-    end
     catch
     end
     return x
 end
-
 
 function reader(tw)
     known = Set()
@@ -99,8 +97,8 @@ function reader(tw)
 end
 
 function writer(ch)
-    while true 
-        x=JSync.watch_folder("/tmp/test/");
+    while true
+        x = JSync.watch_folder("/tmp/test/")
         @async put!(ch, x.path)
     end
 end
@@ -113,11 +111,11 @@ end
 # end
 
 function main()
-    rm("/tmp/test", recursive=true, force=true)
+    rm("/tmp/test"; recursive=true, force=true)
     mkdir("/tmp/test")
 
     # tw = JSync.watch_tree("/tmp/test", max_delay=1)
-    tw = JSync.watch_tree("/tmp/test", max_events=50, max_delay = Inf)
+    tw = JSync.watch_tree("/tmp/test"; max_events=50, max_delay=Inf)
     # Base.Experimental.@sync begin
     # tw = JSync.watch_tree("/tmp/test")
     # @info typeof(tw)
@@ -126,6 +124,5 @@ function main()
     # ch = Channel{String}(Inf)
     # @async writer(ch)
     # reader(ch)
-    tw
+    return tw
 end
-    

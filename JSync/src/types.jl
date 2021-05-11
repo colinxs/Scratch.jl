@@ -6,7 +6,6 @@ struct TreeEvent
     timedout::Bool
 end
 
-
 struct TreeWatcher
     root::String
     lock::ReentrantLock
@@ -29,7 +28,7 @@ function TreeWatcher(root::String; sync_period::Int=5, sz::Int=1024)
         Channel{TreeEvent}(sz),
         Threads.Atomic{Bool}(false),
         max(TIMEOUT_S, sync_period),
-        nothing
+        nothing,
     )
 end
 
@@ -59,7 +58,6 @@ function start!(tw::TreeWatcher)
     # @async watchdog(tw)
     return tw
 end
-
 
 # If something like `mkdir -p "/1/2/3/..../1000"`
 # is done then TreeWatcher may fall out of sync
@@ -102,7 +100,7 @@ function prune!(tw::TreeWatcher)
         for dir in watchlist
             delete!(tw.watchlist, dir)
         end
-        for path in tree 
+        for path in tree
             delete!(tw.tree, path)
         end
     end
@@ -157,7 +155,6 @@ function watch_indefinitely!(tw::TreeWatcher, path::String)
     end
 end
 
-
 function unsafe_iswatched(tw::TreeWatcher, path::String)
     return haskey(tw.watchlist, path) && !istaskdone(tw.watchlist[path])
 end
@@ -196,7 +193,6 @@ function check_failed(tw::TreeWatcher)
     return nothing
 end
 
-
 const Batch = Vector{TreeEvent}
 
 struct BatchedTreeWatcher
@@ -208,10 +204,14 @@ struct BatchedTreeWatcher
     max_events::Int
 end
 
-function BatchedTreeWatcher(root::String; max_delay=0, max_events=typemax(Int), sz=1024, kwargs...)
+function BatchedTreeWatcher(
+    root::String; max_delay=0, max_events=typemax(Int), sz=1024, kwargs...
+)
     tw = TreeWatcher(root; kwargs...)
     batch_events = Channel{Batch}(sz)
-    return BatchedTreeWatcher(tw, batch_events, Dict{String,TreeEvent}(), ReentrantLock(), max_delay, max_events)
+    return BatchedTreeWatcher(
+        tw, batch_events, Dict{String,TreeEvent}(), ReentrantLock(), max_delay, max_events
+    )
 end
 
 @forward BatchedTreeWatcher.batch_events Base.take!, Base.wait
@@ -250,7 +250,8 @@ function writer(btw::BatchedTreeWatcher)
     try
         while isopen(btw)
             @lock btw.lock begin
-                if length(buf) > 0 && (time() - t > btw.max_delay || length(buf) > btw.max_events)
+                if length(buf) > 0 &&
+                   (time() - t > btw.max_delay || length(buf) > btw.max_events)
                     batch = collect(values(btw.buf))
                     @info "SEND: $(isopen(btw.batch_events)) $(length(batch)) $(length(btw.batch_events.data)) $(btw.batch_events.sz_max)"
                     @async put!(btw.batch_events, batch)

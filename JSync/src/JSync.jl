@@ -4,7 +4,7 @@ using Random
 using Base: @lock
 using FileWatching: FileWatching, unwatch_folder
 using Dev: @exportall
-using MacroTools: @forward 
+using MacroTools: @forward
 
 include("types.jl")
 include("util.jl")
@@ -12,7 +12,7 @@ include("util.jl")
 const TIMEOUT_S = 10
 
 # Main entry point
-function watch_tree(args...; max_delay= 0, max_events = typemax(Int), kwargs...)
+function watch_tree(args...; max_delay=0, max_events=typemax(Int), kwargs...)
     if max_delay > 0 || max_events != typemax(Int)
         watcher = BatchedTreeWatcher(args...; max_delay, max_events, kwargs...)
     else
@@ -20,7 +20,7 @@ function watch_tree(args...; max_delay= 0, max_events = typemax(Int), kwargs...)
     end
     # Threads.@spawn start!(watcher)
     start!(watcher)
-    watcher
+    return watcher
 end
 
 @exportall
