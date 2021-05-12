@@ -1,0 +1,16 @@
+name = "Bundler"
+uuid = "ec94fafe-9c1c-4b2a-ac8a-4af6dba1bc17"
+authors = ["Colin Summers <me@colinxsummers.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
