@@ -38,11 +38,12 @@ function noteEcho() {
     echo "${noteColor}$*${normalColor}" >&2
 }
 
-MS_dd()
-{
-    blocks=`expr $3 / 1024`
-    bytes=`expr $3 % 1024`
-    dd if="$1" ibs=$2 skip=1 obs=1024 conv=sync 2> /dev/null | \
-    { test $blocks -gt 0 && dd ibs=1024 obs=1024 count=$blocks ; \
-      test $bytes  -gt 0 && dd ibs=1 obs=1024 count=$bytes ; } 2> /dev/null
+MS_dd() {
+    blocks=$(expr $3 / 1024)
+    bytes=$(expr $3 % 1024)
+    dd if="$1" ibs=$2 skip=1 obs=1024 conv=sync 2>/dev/null |
+        {
+            test $blocks -gt 0 && dd ibs=1024 obs=1024 count=$blocks
+            test $bytes -gt 0 && dd ibs=1 obs=1024 count=$bytes
+        } 2>/dev/null
 }
