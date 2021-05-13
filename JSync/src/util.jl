@@ -25,8 +25,20 @@ function issubpath(path::String, parent::String)
 end
 
 function watch_folder(path::String, timeout::Int=-1)
-    childpath, ev = FileWatching.watch_folder(path, timeout)
-    path = childpath == "" ? childpath : sanitize_path(joinpath(path, childpath))
-    kind = isdir(path) ? :dir : :file
-    return TreeEvent(kind, path, ev.changed, ev.renamed, ev.timedout)
+    path = sanitize_path(path)
+    evpath, ev = FileWatching.watch_folder(path, timeout)
+    evpath = evpath == "" ? path : sanitize_path(joinpath(path, evpath))
+    kind = isdir(evpath) ? :dir : :file
+    return TreeEvent(kind, evpath, ev.changed, ev.renamed, ev.timedout)
 end
+
+macro catchall(expr)
+    quote
+        try
+            $(esc(expr))
+        catch
+        end
+    end
+end
+
+clip(x, mi, ma) = max(mi, min(ma, x))

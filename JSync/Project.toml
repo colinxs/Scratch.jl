@@ -4,11 +4,8 @@ authors = ["Colin Summers <me@colinxsummers.com> and contributors"]
 version = "0.1.0"
 
 [deps]
-Dev = "ce0b0ae8-a14f-4d6c-b44b-123d288850fa"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-ReusePatterns = "a39b5e78-89b5-562b-97d8-70689129df0c"
 
 [compat]
 julia = "1.6"

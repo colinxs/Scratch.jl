@@ -1,16 +1,9 @@
 module Dev
 
-# Write your package code here.
-#
+using MacroTools: @forward
 
-macro exportall()
-    exports = Expr[]
-    for n in names(__module__; all=true)
-        if Base.isidentifier(n) && n ∉ (Symbol(__module__), :eval, :include)
-            push!(exports, :(export $n))
-        end
-    end
-    return Expr(:block, exports...)
-end
+include("./misc.jl")
+include("./ANSI.jl")
+include("./TestExtensions.jl")
 
 end

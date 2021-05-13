@@ -13,11 +13,10 @@ struct TreeWatcher
     tree::Set{String}
     tree_events::Channel{TreeEvent}
     isactive::Threads.Atomic{Bool}
-    sync_period::Int
-    err::Union{Exception,Nothing}
+    sync_period::Float64
 end
 
-function TreeWatcher(root::String; sync_period::Int=5, sz::Int=1024)
+function TreeWatcher(root::String; sync_period::Number=MAX_DELAY_S, sz::Integer=MAX_EVENTS)
     @assert isdir(root)
     @assert sz > 0
     return TreeWatcher(
@@ -25,10 +24,9 @@ function TreeWatcher(root::String; sync_period::Int=5, sz::Int=1024)
         ReentrantLock(),
         Dict{String,Task}(),
         Set{String}(),
-        Channel{TreeEvent}(sz),
+        Channel{TreeEvent}(clip(sz, MIN_EVENTS, MAX_EVENTS)),
         Threads.Atomic{Bool}(false),
-        max(TIMEOUT_S, sync_period),
-        nothing,
+        clip(sync_period, MIN_DELAY_S, MAX_DELAY_S),
     )
 end
 
@@ -38,10 +36,16 @@ isactive(tw::TreeWatcher) = tw.isactive[]
 
 function Base.close(tw::TreeWatcher)
     stop!(tw)
-    @async @lock tw.lock begin
-        for (_, task) in tw.watchlist
-            wait(task)
+    tasts = @lock tw.lock begin
+        collect(values(tw.watchlist))
+    end
+    for (_, task) in tw.watchlist
+        wait(task)
+        if istaskfailed(task)
+            Base.show_task_exception(stderr, task)
         end
+    end
+    @lock tw.lock begin
         close(tw.tree_events)
         empty!(tw.watchlist)
         empty!(tw.tree)
@@ -55,31 +59,43 @@ function start!(tw::TreeWatcher)
     isopen(tw) || error("Cannot start a closed TreeWatcher")
     tw.isactive[] = true
     ensure_watch_recursively!(tw, tw.root)
-    # @async watchdog(tw)
+    @async watchdog(tw)
+    @async poll(tw)
     return tw
 end
 
-# If something like `mkdir -p "/1/2/3/..../1000"`
-# is done then TreeWatcher may fall out of sync
-# because it's not able to add watchers for the subdirectories
-# as fast as they are created
-function watchdog(tw::TreeWatcher)
+function poll(tw::TreeWatcher)
     t = time()
     try
         while isactive(tw)
-            if time() - t > tw.sync_period
+            if time() - t >= tw.sync_period
                 ensure_watch_recursively!(tw, tw.root)
-                check_failed(tw)
-                check_missing_children(tw)
-                check_valid_children(tw)
-                # prune!(tw)
                 t = time()
             end
             sleep(tw.sync_period)
         end
-    catch e
+    catch
+        close(tw)
         rethrow()
-        tw.err = e
+    end
+    @debug "Done syncing"
+end
+
+
+function watchdog(tw::TreeWatcher)
+    t = time()
+    try
+        while isactive(tw)
+            if time() - t >= tw.sync_period
+                check_failed(tw)
+                check_missing_children(tw)
+                check_valid_children(tw)
+                prune!(tw)
+                t = time()
+            end
+            sleep(WATCHDOG_S)
+        end
+    catch
         close(tw)
         rethrow()
     end
@@ -109,22 +125,22 @@ end
 
 function ensure_watch_recursively!(tw::TreeWatcher, path::String)
     path = sanitize_path(path)
-    @lock tw.lock begin
-        unsafe_ensure_watch!(tw, path)
-        try
-            for (r, ds, fs) in walkdir(path)
-                for d in ds
-                    d = sanitize_path(joinpath(path, r, d))
-                    unsafe_ensure_watch!(tw, d)
-                end
-                for f in fs
-                    f = sanitize_path(joinpath(path, r, f))
-                    unsafe_ensure_watch!(tw, f)
-                end
+    @lock tw.lock begin unsafe_ensure_watch!(tw, path) end
+    children = sizehint!(String[], length(tw.tree))
+    try
+        for (r, ds, fs) in walkdir(path)
+            for d in ds
+                push!(children, sanitize_path(joinpath(path, r, d)))
             end
-        catch e
-            e isa Base.IOError || rethrow()
+            for f in fs
+                push!(children, sanitize_path(joinpath(path, r, f)))
+            end
         end
+    catch e
+        e isa Base.IOError || rethrow()
+    end
+    @lock tw.lock for child in children
+        unsafe_ensure_watch!(tw, child)
     end
     return tw
 end
@@ -144,10 +160,13 @@ function watch_indefinitely!(tw::TreeWatcher, path::String)
     try
         while isactive(tw) && isopen(tw) && isdir(path)
             event = watch_folder(path, TIMEOUT_S)
-            event.timedout && continue
-            ispath(event.path) && @lock tw.lock push!(tw.tree, event.path)
-            ensure_watch_recursively!(tw, event.path)
-            isopen(tw) && @async put!(tw.tree_events, event)
+            if !event.timedout && isopen(tw)
+                if ispath(event.path)
+                    @lock tw.lock push!(tw.tree, event.path)
+                    ensure_watch_recursively!(tw, event.path)
+                end
+                @async put!(tw.tree_events, event)
+            end
         end
     finally
         @debug "Done watching $(path)" isdir(path) isactive(tw)
@@ -205,12 +224,16 @@ struct BatchedTreeWatcher
 end
 
 function BatchedTreeWatcher(
-    root::String; max_delay=0, max_events=typemax(Int), sz=1024, kwargs...
+    root::String; max_delay=MAX_DELAY_S, max_events=MAX_EVENTS, sz=MAX_EVENTS, kwargs...
 )
     tw = TreeWatcher(root; kwargs...)
-    batch_events = Channel{Batch}(sz)
     return BatchedTreeWatcher(
-        tw, batch_events, Dict{String,TreeEvent}(), ReentrantLock(), max_delay, max_events
+        tw,
+        Channel{Batch}(clip(sz, MIN_EVENTS, MAX_EVENTS)),
+        Dict{String,TreeEvent}(),
+        ReentrantLock(),
+        clip(max_delay, MIN_DELAY_S, MAX_DELAY_S),
+        clip(max_events, MIN_EVENTS, MAX_EVENTS),
     )
 end
 
@@ -222,10 +245,6 @@ Base.close(btw::BatchedTreeWatcher) = (close(btw.batch_events); close(btw.tw))
 @forward BatchedTreeWatcher.tw stop!, isactive
 function start!(btw::BatchedTreeWatcher)
     start!(btw.tw)
-    while !isopen(btw)
-        sleep(0.01)
-    end
-    @info "START!"
     @async reader(btw)
     @async writer(btw)
     return btw
@@ -250,17 +269,14 @@ function writer(btw::BatchedTreeWatcher)
     try
         while isopen(btw)
             @lock btw.lock begin
-                if length(buf) > 0 &&
-                   (time() - t > btw.max_delay || length(buf) > btw.max_events)
+                if length(buf) > 0 && (time() - t >= btw.max_delay || length(buf) >= btw.max_events)
                     batch = collect(values(btw.buf))
-                    @info "SEND: $(isopen(btw.batch_events)) $(length(batch)) $(length(btw.batch_events.data)) $(btw.batch_events.sz_max)"
                     @async put!(btw.batch_events, batch)
                     empty!(buf)
                     t = time()
                 end
             end
-            # sleep(min(max(0.20, btw.max_delay), 1e10))
-            sleep(1)
+            sleep(MIN_DELAY_S)
         end
     finally
         close(btw)
