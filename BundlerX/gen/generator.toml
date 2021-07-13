@@ -1,0 +1,43 @@
+[general]
+# HACK
+library_name = "\"libc.so.6\""
+output_file_path = "./Mman.jl"
+module_name = "Mman"
+macro_mode = "disable"
+printer_blacklist = [
+    "__ptr_t",
+    "__extern_always_inline",
+    "__fortify_function",
+    "__attribute_artificial__",
+    "__restrict_arr",
+    "__SYSCALL_SLONG_TYPE",
+    "__SSIZE_T_TYPE",
+    "__SYSCALL_ULONG_TYPE",
+    "__DEV_T_TYPE",
+    "__INO64_T_TYPE",
+    "__FSWORD_T_TYPE",
+    "__OFF_T_TYPE",
+    "__OFF64_T_TYPE",
+    "__RLIM64_T_TYPE",
+    "__BLKCNT_T_TYPE",
+    "__BLKCNT64_T_TYPE",
+    "__FSBLKCNT64_T_TYPE",
+    "__FSFILCNT64_T_TYPE ",
+    "__CLOCK_T_TYPE",
+    "__TIME_T_TYPE",
+    "__SUSECONDS_T_TYPE",
+    "__SUSECONDS64_T_TYPE",
+    "__BLKSIZE_T_TYPE",
+    "__INO_T_TYPE",
+    "__NLINK_T_TYPE",
+    "__RLIM_T_TYPE",
+    "__RLIM_T_TYPE",
+    "__FSBLKCNT_T_TYPE",
+    "__FSBLKCNT_T_TYPE",
+    "__FSFILCNT64_T_TYPE",
+    "__CPU_MASK_TYPE",
+    "__FSFILCNT_T_TYPE",
+    "__TIMER_T_TYPE",
+    "__TIME64_T_TYPE",
+]
+
