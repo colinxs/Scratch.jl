@@ -12,21 +12,13 @@ include("util.jl")
 const MAGIC = "bb67f070-18d4-46be-b03c-54d1684c06d7"
 
 function pack(
-        path, dir; entrypoint::Union{String,Nothing}=nothing, compression_level::Int = 1 
+        src, dst = joinpath(dirname(src), "$(basename(src))-obs"); compression_level::Int = 1 
 )
-    open(path, "w") do io
+    open(dst, "w") do io
         open(joinpath(@__DIR__, "../gen/Mman.jl")) do f
             writeln(io, f)
         end
         writeln(io, read(joinpath(@__DIR__, "../scripts/stub.jl")))
-
-        write(io, "const ENTRY_POINT = ")
-        if entrypoint === nothing 
-            writeln(io, "nothing") 
-        else
-            isexecutable(joinpath(dir, entrypoint)) || error("Not an executable: $entrypoint")
-            writeln(io, '"', entrypoint, '"')
-        end
 
         writeln(io, "const MAGIC = ", '"', MAGIC, '"')
 
@@ -36,10 +28,12 @@ function pack(
         writeln(io, MAGIC)
     end
 
-    open(path, "a") do io
-        stream = TranscodingStream(ZstdCompressor(level=compression_level), io)
-        Tar.create(dir, stream)
-        close(stream)
+    open(dst, "a") do dstio
+        open(src, "r") do srcio
+            stream = TranscodingStream(ZstdCompressor(level=compression_level), dstio)
+            write(stream, srcio)
+            close(stream)
+        end
     end
 end
 

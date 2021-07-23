@@ -3,7 +3,7 @@ module M
 include("./src/BundlerX.jl")
 using .BundlerX
 
-function main()
+function main2()
     script = 
     """
     #!/usr/bin/bash
@@ -24,6 +24,12 @@ function main()
     @assert orig == dec
 
     BundlerX.pack(joinpath(@__DIR__, "example"), "/tmp/foo")
+end
+
+function main()
+    # src = "/nix/store/z4kq2snywp4wg654y0q438l7801lph71-ripgrep-13.0.0/bin/rg"
+    src = "/tmp/exe"
+    BundlerX.pack(src, "rgobs")
 end
 
 end
